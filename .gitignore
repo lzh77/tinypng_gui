@@ -1,0 +1,95 @@
+# Flutter/Dart 核心
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# iOS 平台特定
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/App.framework
+ios/Flutter/App.podspec
+ios/Flutter/App.framework.zip
+ios/Flutter/Generated.podspec
+ios/Pods/
+ios/.symlinks/
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+ServiceDevice.plist
+Podfile.lock
+
+# Android 平台特定
+android/app/local.properties
+android/app/GeneratedPluginRegistrant.java
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+android/.gradle/
+android/captures/
+android/gradle/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/settings.gradle
+*.jks
+*.keystore
+*.apk
+*.aab
+
+# Windows 平台特定
+windows/flutter/ephemeral/
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/runner/GeneratedPluginRegistrant.cc
+windows/runner/GeneratedPluginRegistrant.h
+*.exe
+*.dll
+*.pdb
+*.msi
+*.msix
+
+# macOS 平台特定
+macos/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Runner/GeneratedPluginRegistrant.swift
+
+# Linux 平台特定
+linux/flutter/ephemeral/
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugin_registrant.h
+
+# 编译出的测试报告
+test_report/
+coverage/
+
+# IDE 配置文件
+.idea/
+.vscode/
+*.iml
+*.iws
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 操作系统特定
+.DS_Store
+Thumbs.db
+
+# 证书与密钥 (绝不要上传)
+*.pem
+*.pfx
+*.jks
+secrets.json
+
+# AI 助手与开发工具
+.agent/
+.gemini/
+cortex_metadata.json
+
+# 生成的代码 (mockito mocks 等)
+# 取决于团队偏好，通常建议上传以方便 CI/CD，
+# 但如果您希望保持仓库整洁，可以取消注释下面一行：
+# *.mocks.dart
