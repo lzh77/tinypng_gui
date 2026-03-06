@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/tasks_notifier.dart';
-import '../../../services/logger_service.dart';
+import '../../providers/tasks_notifier.dart';
+import '../settings/settings_screen.dart';
 import 'widgets/action_toolbar.dart';
 import 'widgets/file_list_item.dart';
 import 'widgets/statistics_panel.dart';
@@ -21,9 +21,10 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.settings),
             tooltip: '设置',
             onPressed: () {
-              // TODO: 导航到设置页面
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('设置页面开发中...')),
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SettingsScreen(),
+                ),
               );
             },
           ),
