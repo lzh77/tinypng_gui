@@ -13,7 +13,10 @@ void main() {
 
     setUp(() {
       dio = Dio();
-      dioAdapter = DioAdapter(dio: dio);
+      dioAdapter = DioAdapter(
+        dio: dio,
+        matcher: const UrlRequestMatcher(matchMethod: true),
+      );
       api = TinyPngApi(apiKey: apiKey, dio: dio);
     });
 
