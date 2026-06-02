@@ -130,7 +130,7 @@ class TinyPngApi {
 
         final processResponse = await _dio.post(
           outputUrl,
-          data: processData,
+          data: jsonEncode(processData),
           options: Options(
             headers: {
               Headers.contentTypeHeader: 'application/json',
