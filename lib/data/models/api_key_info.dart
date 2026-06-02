@@ -16,12 +16,12 @@ class ApiKeyInfo extends Equatable {
   final String id;              // API Key唯一标识符
   final String key;             // API Key的实际值（加密存储）
   final String alias;           // API Key的别名，便于用户识别
-  int compressionCount;         // 本月已使用的压缩次数
-  int? monthlyLimit;            // 月度限额（null 表示未知）
-  ApiKeyStatus status;          // 当前状态
-  DateTime createdAt;           // API Key创建时间
-  DateTime? lastUsedAt;         // 最后使用时间
-  bool isDefault;               // 是否为默认使用的API Key
+  final int compressionCount;   // 本月已使用的压缩次数
+  final int? monthlyLimit;      // 月度限额（null 表示未知）
+  final ApiKeyStatus status;    // 当前状态
+  final DateTime createdAt;     // API Key创建时间
+  final DateTime? lastUsedAt;   // 最后使用时间
+  final bool isDefault;         // 是否为默认使用的API Key
 
   ApiKeyInfo({
     String? id,
@@ -87,7 +87,9 @@ class ApiKeyInfo extends Equatable {
       monthlyLimit: json['monthlyLimit'] as int?,
       status: _getStatusFromString(json['status'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
-      lastUsedAt: json['lastUsedAt'] != null ? DateTime.parse(json['lastUsedAt'] as String) : null,
+      lastUsedAt: json['lastUsedAt'] != null
+          ? DateTime.parse(json['lastUsedAt'] as String)
+          : null,
       isDefault: json['isDefault'] as bool? ?? false,
     );
   }

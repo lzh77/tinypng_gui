@@ -144,7 +144,7 @@ class QueueStatusNotifier extends ChangeNotifier {
     if (_totalCount == 0) {
       return '没有任务';
     }
-    return '$_completedCount / $_totalCount (${progressPercentage}%)';
+    return '$_completedCount / $_totalCount ($progressPercentage%)';
   }
 
   @override

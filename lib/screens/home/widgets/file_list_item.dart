@@ -124,7 +124,7 @@ class FileListItem extends StatelessWidget {
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: iconColor.withOpacity(0.1),
+        color: iconColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Center(

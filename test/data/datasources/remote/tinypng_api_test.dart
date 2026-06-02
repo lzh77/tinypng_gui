@@ -13,7 +13,10 @@ void main() {
 
     setUp(() {
       dio = Dio();
-      dioAdapter = DioAdapter(dio: dio);
+      dioAdapter = DioAdapter(
+        dio: dio,
+        matcher: const UrlRequestMatcher(matchMethod: true),
+      );
       api = TinyPngApi(apiKey: apiKey, dio: dio);
     });
 
@@ -30,6 +33,7 @@ void main() {
             'type': 'image/png'
           }
         }, headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
           'compression-count': ['42'],
         }),
         data: Matchers.any,
@@ -41,9 +45,11 @@ void main() {
         (server) => server.reply(200, {
           'output': {'size': 256, 'type': 'image/webp'}
         }, headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
           'Location': ['https://api.tinify.com/out/2'],
         }),
-        data: Matchers.any,
+        data:
+            '{"resize":{"method":"scale","width":300},"convert":{"type":"image/webp"}}',
       );
 
       // 3. Mock 下载环节

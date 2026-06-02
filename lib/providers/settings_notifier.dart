@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../data/models/app_settings.dart';
 import '../data/datasources/local/settings_local_data_source.dart';

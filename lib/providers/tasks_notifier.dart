@@ -9,7 +9,7 @@ import '../services/queue_event.dart';
 class TasksNotifier extends ChangeNotifier {
   final QueueService _queueService;
 
-  List<CompressionTask> _tasks = [];
+  final List<CompressionTask> _tasks = [];
   StreamSubscription<QueueEvent>? _queueSubscription;
 
   TasksNotifier({required QueueService queueService})

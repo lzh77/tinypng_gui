@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/tasks_notifier.dart';
-import '../../../services/file_service.dart';
 
 class StatisticsPanel extends StatelessWidget {
   const StatisticsPanel({super.key});
@@ -140,7 +139,7 @@ class StatisticsPanel extends StatelessWidget {
     return Container(
       height: 30,
       width: 1,
-      color: Colors.grey.withOpacity(0.3),
+      color: Colors.grey.withValues(alpha: 0.3),
       margin: const EdgeInsets.symmetric(horizontal: 24),
     );
   }
