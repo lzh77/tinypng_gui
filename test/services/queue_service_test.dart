@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
@@ -94,9 +93,9 @@ void main() {
               ));
 
       // 模拟耗时任务
-      when(mockCompressionService.compressTask(any)).thenAnswer((_) async {
+      when(mockCompressionService.compressTask(any)).thenAnswer((invocation) async {
         await Future.delayed(const Duration(milliseconds: 100));
-        final t = _.positionalArguments[0] as CompressionTask;
+        final t = invocation.positionalArguments[0] as CompressionTask;
         return t.copyWith(status: CompressionStatus.completed);
       });
 

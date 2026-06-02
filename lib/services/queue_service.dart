@@ -40,8 +40,9 @@ class QueueService {
   QueueStatus get status {
     if (_isStopping) return QueueStatus.stopping;
     if (_isPaused) return QueueStatus.paused;
-    if (_isRunning && (_processingIds.isNotEmpty || _queue.isNotEmpty))
+    if (_isRunning && (_processingIds.isNotEmpty || _queue.isNotEmpty)) {
       return QueueStatus.running;
+    }
     return QueueStatus.idle;
   }
 

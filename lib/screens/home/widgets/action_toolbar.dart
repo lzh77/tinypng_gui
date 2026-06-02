@@ -170,6 +170,8 @@ class ActionToolbar extends StatelessWidget {
           ));
         }
 
+        if (!context.mounted) return;
+
         tasksNotifier.addTasks(tasks);
 
         ScaffoldMessenger.of(context).showSnackBar(
