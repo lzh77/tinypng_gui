@@ -22,12 +22,13 @@
 - [x] 实现[ApiKeyInfo](file:///c:/code/tinypng_gui/lib/data/models/api_key_info.dart)和 ApiKeyStatus（枚举定义于模型文件内）
 - [x] 实现[AppSettings](file:///c:/code/tinypng_gui/lib/data/models/app_settings.dart)
 - [x] 实现[CompressionResultData](file:///c:/code/tinypng_gui/lib/data/models/compression_result_data.dart)
+- [x] 实现[HistoryRecord](file:///c:/code/tinypng_gui/lib/data/models/history_record.dart)（压缩历史快照模型）
 
 #### 2.1.3 数据层实现
 - [x] 实现[TinyPngApi](file:///c:/code/tinypng_gui/lib/data/datasources/remote/tinypng_api.dart)类，包含压缩、验证等功能
 - [x] 实现API Key安全存储（[SecureApiKeyStorage](file:///c:/code/tinypng_gui/lib/data/datasources/local/secure_api_key_storage.dart)：flutter_secure_storage + AES-256加密）
 - [x] 实现应用设置存储（[SettingsLocalDataSource](file:///c:/code/tinypng_gui/lib/data/datasources/local/settings_local_data_source.dart)：shared_preferences）
-- [ ] 实现HistoryDatabase（sqflite_common_ffi 已在 `main.dart` 初始化，无数据库读写实现）
+- [x] 实现[HistoryDatabase](file:///c:/code/tinypng_gui/lib/data/datasources/local/history_database.dart)（sqflite_common_ffi + SQLite；增删查、自动保留最近 1000 条）
 
 #### 2.1.4 服务层实现
 - [x] 实现[FileService](file:///c:/code/tinypng_gui/lib/services/file_service.dart)（文件选择、路径处理、输出路径生成）
@@ -44,6 +45,8 @@
 - [x] 实现TasksNotifier（任务状态管理）
 - [x] 实现SettingsNotifier（设置状态管理）
 - [x] 实现QueueStatusNotifier（队列状态管理）
+- [x] 实现ApiKeyNotifier（API Key 状态管理，与安全存储打通）
+- [x] 实现HistoryNotifier（历史记录状态管理，分页加载与清空）
 
 #### 2.1.7 基础UI界面
 - [x] 创建Provider状态管理配置（[main.dart](file:///c:/code/tinypng_gui/lib/main.dart) 中 `MultiProvider` + `ProxyProvider` 依赖链）
@@ -58,10 +61,10 @@
 ### 2.2 第二阶段（完整功能实现 - 按架构文档补充）
 
 #### 2.2.1 完善UI组件
-- [ ] 实现所有屏幕（Home ✅、Settings ✅、History ❌）
+- [x] 实现所有屏幕（Home ✅、Settings ✅、History ✅）
 - [x] 实现所有设置选项卡/分组（四区块已完成；`language` 字段无对应 UI，未接入国际化）
-- [ ] 实现拖拽功能（`desktop_drop` 已声明依赖且 OLE 已初始化，`lib/` 中未使用）
-- [ ] 实现历史记录查看界面（`HomeScreen` 历史按钮为 TODO SnackBar）
+- [x] 实现拖拽功能（[HomeScreen](file:///c:/code/tinypng_gui/lib/screens/home/home_screen.dart) + `desktop_drop`；拖拽文件夹递归扫描）
+- [x] 实现历史记录查看界面（[HistoryScreen](file:///c:/code/tinypng_gui/lib/screens/history/history_screen.dart)；主页 AppBar 历史按钮已接入导航）
 
 #### 2.2.2 完善业务逻辑
 - [x] 实现并发压缩控制（[QueueService](file:///c:/code/tinypng_gui/lib/services/queue_service.dart) 使用 `pool`；`QueueStatusNotifier.start()` 启动前同步 `concurrentLimit`）
@@ -71,7 +74,7 @@
 
 #### 2.2.3 完善数据持久化
 - [x] 实现完整的API Key加密存储机制（`SecureApiKeyStorage` + `ApiKeyService` + `ApiKeyNotifier`；`AppSettings.toJson` 不再持久化明文 Key）
-- [ ] 实现历史记录存储
+- [x] 实现历史记录存储（[HistoryDatabase](file:///c:/code/tinypng_gui/lib/data/datasources/local/history_database.dart) + [HistoryService](file:///c:/code/tinypng_gui/lib/services/history_service.dart)；`TasksNotifier` 在任务完成/失败时自动写入）
 - [x] 实现应用设置存储（`SettingsLocalDataSource` 已实现；`main.dart` 启动时调用 `loadSettings()`）
 
 #### 2.2.4 完善错误处理
@@ -87,7 +90,7 @@
 - [ ] 实现应用打包（MSIX格式；仅架构文档有说明，`pubspec.yaml` 无 `msix` 配置）
 
 #### 2.3.2 测试
-- [ ] 实现所有单元测试（部分已有：TinyPngApi、SecureApiKeyStorage、SettingsLocalDataSource、QueueService、FileService、TasksNotifier、SettingsNotifier、QueueStatusNotifier）
+- [ ] 实现所有单元测试（已有：TinyPngApi、SecureApiKeyStorage、SettingsLocalDataSource、QueueService、FileService、ApiKeyService、CompressionService、TasksNotifier、SettingsNotifier、QueueStatusNotifier、ApiKeyNotifier、HistoryRecord 等；缺 HistoryDatabase / HistoryNotifier 专项测试）
 - [ ] 实现所有Widget测试（仅 [widget_test.dart](file:///c:/code/tinypng_gui/test/widget_test.dart) 验证 App 初始化）
 - [ ] 实现集成测试
 
@@ -99,11 +102,12 @@
    - [x] [CompressionTask](file:///c:/code/tinypng_gui/lib/data/models/compression_task.dart) - 压缩任务模型
    - [x] [AppSettings](file:///c:/code/tinypng_gui/lib/data/models/app_settings.dart) - 应用设置模型
    - [x] [CompressionResultData](file:///c:/code/tinypng_gui/lib/data/models/compression_result_data.dart) - 压缩结果数据模型
+   - [x] [HistoryRecord](file:///c:/code/tinypng_gui/lib/data/models/history_record.dart) - 压缩历史记录模型
 
 2. **数据源** ([data/datasources](file:///c:/code/tinypng_gui/lib/data/datasources))
    - [x] [TinyPngApi](file:///c:/code/tinypng_gui/lib/data/datasources/remote/tinypng_api.dart) - API接口实现
    - [x] 本地设置存储（SettingsLocalDataSource + SecureApiKeyStorage）
-   - [ ] 历史记录存储（HistoryDatabase 未实现）
+   - [x] 历史记录存储（[HistoryDatabase](file:///c:/code/tinypng_gui/lib/data/datasources/local/history_database.dart)）
 
 ### 3.2 业务逻辑层实现
 1. **服务层** ([services](file:///c:/code/tinypng_gui/lib/services))
@@ -111,6 +115,7 @@
    - [x] [ApiKeyService](file:///c:/code/tinypng_gui/lib/services/api_key_service.dart) - API Key管理服务
    - [x] [CompressionService](file:///c:/code/tinypng_gui/lib/services/compression_service.dart) - 压缩核心服务
    - [x] [QueueService](file:///c:/code/tinypng_gui/lib/services/queue_service.dart) - 队列管理服务
+   - [x] [HistoryService](file:///c:/code/tinypng_gui/lib/services/history_service.dart) - 历史记录服务
 
 2. **异常处理**
    - [x] 实现所有自定义异常类（tinypng_api.dart）
@@ -122,16 +127,19 @@
    - [x] TasksNotifier - 任务状态管理
    - [x] SettingsNotifier - 设置状态管理
    - [x] QueueStatusNotifier - 队列状态管理
+   - [x] ApiKeyNotifier - API Key 状态管理
+   - [x] HistoryNotifier - 历史记录状态管理
 
 2. **UI组件**（位于各 screen 的 `widgets/` 子目录，非独立 `lib/widgets/`）
    - [x] FileListItem - 文件列表项组件
    - [x] 进度显示 - QueueControlButtons 内 `LinearProgressIndicator`（无独立 ProgressBar 组件）
    - [x] StatisticsPanel - 统计面板组件
+   - [x] HistoryListItem / HistorySummaryPanel - 历史记录列表项与汇总面板
 
 3. **页面** ([screens](file:///c:/code/tinypng_gui/lib/screens))
    - [x] HomeScreen - 主页面
    - [x] SettingsScreen - 设置页面
-   - [ ] HistoryScreen - 历史记录页面
+   - [x] HistoryScreen - 历史记录页面
 
 ## 4. 关键技术实现要点
 
@@ -149,12 +157,12 @@
 - [x] 在[windows/runner/main.cpp](file:///c:/code/tinypng_gui/windows/runner/main.cpp)中添加OleInitialize()以支持文件拖拽
 - [x] 配置高DPI感知支持
 - [x] 设置窗口管理选项
-- [ ] desktop_drop 拖拽导入（Dart 侧未实现）
+- [x] desktop_drop 拖拽导入（`DropTarget` 包裹主页；`TaskImportHelper` 统一路径解析）
 
 ## 5. 测试计划
 
 ### 5.1 单元测试
-- [x] 数据模型测试（`app_settings_test`、`compression_task_test`）
+- [x] 数据模型测试（`app_settings_test`、`compression_task_test`、`history_record_test`）
 - [x] 服务层单元测试（FileService、QueueService、ApiKeyService、CompressionService）
 - [x] API Key加密存储测试（secure_api_key_storage_test.dart）
 - [x] 并发控制测试（queue_service_test.dart）
@@ -221,8 +229,8 @@ dev_dependencies:
 ## 7. 里程碑
 
 - **第一阶段**: 第1-3周完成（核心功能跑通）— **主体已完成**，遗留：文件导入细节（`avif`、递归、`baseDir`）
-- **第二阶段**: 第4-5周完成（完整功能）— **进行中**，历史记录、拖拽、重试、设置贯通等待完成
-- **第三阶段**: 第6周完成（平台配置和测试）— Windows 运行时配置基本完成；MSIX 打包与测试体系待完善
+- **第二阶段**: 第4-5周完成（完整功能）— **进行中**，历史记录 ✅、拖拽 ✅；配额实时刷新等待完成
+- **第三阶段**: 第6周完成（平台配置和测试）— Windows 运行时配置基本完成；MSIX 打包与 Widget/集成测试待完善
 
 ## 8. 已知集成缺口（2026-06 核对）
 
@@ -231,5 +239,5 @@ dev_dependencies:
 1. ~~**API Key 双轨存储**~~：已通过 `ApiKeyNotifier` 打通（2026-06-25）
 2. ~~**启动未调用 `loadSettings()`**~~：已在 `MainApp._bootstrap()` 中调用（2026-06-25）
 3. ~~**`concurrentLimit` / `retryCount`**~~：已接入队列与压缩服务（2026-06-25）
-4. **历史记录**：UI、数据库、页面均未实现
-5. **拖拽导入**：`desktop_drop` 依赖已添加，`lib/` 未使用
+4. ~~**历史记录**~~：已实现 `HistoryDatabase` / `HistoryService` / `HistoryScreen`，压缩完成或失败时自动写入（2026-06-25）
+5. ~~**拖拽导入**~~：已实现 `desktop_drop` + `TaskImportHelper`（2026-06-25）
