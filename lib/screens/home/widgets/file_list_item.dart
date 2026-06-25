@@ -282,6 +282,7 @@ class FileListItem extends StatelessWidget {
             compressedSize: null,
             createdAt: task.createdAt,
             completedAt: null,
+            baseDir: task.baseDir,
           );
           tasksNotifier.removeTask(task.id);
           tasksNotifier.addTask(resetTask);

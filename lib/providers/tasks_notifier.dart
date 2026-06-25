@@ -180,6 +180,7 @@ class TasksNotifier extends ChangeNotifier {
               compressionRatio: t.compressionRatio,
               createdAt: t.createdAt,
               completedAt: t.completedAt,
+              baseDir: t.baseDir,
             ))
         .toList();
 

@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:uuid/uuid.dart';
-import 'dart:io';
 
 import '../../../data/models/compression_task.dart';
 import '../../../providers/tasks_notifier.dart';
 import '../../../services/file_service.dart';
 import '../../../services/logger_service.dart';
+import '../task_import_helper.dart';
 
 class ActionToolbar extends StatelessWidget {
   const ActionToolbar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 获取 Notifier 以便根据状态启用/禁用按钮（可选，这里简化处理，总是启用）
     final theme = Theme.of(context);
 
     return Container(
@@ -31,7 +28,6 @@ class ActionToolbar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 添加文件按钮
           ElevatedButton.icon(
             onPressed: () => _pickFiles(context),
             icon: const Icon(Icons.add_photo_alternate),
@@ -44,8 +40,6 @@ class ActionToolbar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-
-          // 添加文件夹按钮
           OutlinedButton.icon(
             onPressed: () => _pickDirectory(context),
             icon: const Icon(Icons.create_new_folder),
@@ -54,10 +48,7 @@ class ActionToolbar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
-
           const Spacer(),
-
-          // 更多操作菜单
           Consumer<TasksNotifier>(
             builder: (context, tasksNotifier, _) {
               return PopupMenuButton<String>(
@@ -139,45 +130,41 @@ class ActionToolbar extends StatelessWidget {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
         allowMultiple: true,
         dialogTitle: '选择要压缩的图片',
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        if (!context.mounted) return;
+      if (result == null || result.files.isEmpty) return;
+      if (!context.mounted) return;
 
-        final tasksNotifier = context.read<TasksNotifier>();
-        final fileService = context.read<FileService>();
+      final tasksNotifier = context.read<TasksNotifier>();
+      final fileService = context.read<FileService>();
 
-        final tasks = <CompressionTask>[];
+      final paths = result.files
+          .map((file) => file.path)
+          .where((path) => path != null)
+          .cast<String>()
+          .toList();
 
-        for (final file in result.files) {
-          if (file.path == null) continue;
+      final tasks = await TaskImportHelper.buildTasksFromPaths(
+        paths,
+        fileService,
+      );
 
-          // 再次检查扩展名以防万一
-          if (!fileService.isSupportedImage(file.path!)) continue;
+      if (!context.mounted) return;
 
-          final fileSize = await fileService.getFileSize(file.path!);
-
-          tasks.add(CompressionTask(
-            id: const Uuid().v4(),
-            filePath: file.path!,
-            fileName: p.basename(file.path!),
-            originalSize: fileSize > 0 ? fileSize : file.size,
-            status: CompressionStatus.pending,
-            createdAt: DateTime.now(),
-          ));
-        }
-
-        if (!context.mounted) return;
-
-        tasksNotifier.addTasks(tasks);
-
+      if (tasks.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已添加 ${tasks.length} 个文件')),
+          const SnackBar(content: Text('未选择支持的图片文件')),
         );
+        return;
       }
+
+      tasksNotifier.addTasks(tasks);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已添加 ${tasks.length} 个文件')),
+      );
     } catch (e) {
       LoggerService.e('选择文件失败', e);
       if (context.mounted) {
@@ -194,67 +181,45 @@ class ActionToolbar extends StatelessWidget {
         dialogTitle: '选择包含图片的文件夹',
       );
 
-      if (directoryPath != null) {
-        if (!context.mounted) return;
+      if (directoryPath == null || !context.mounted) return;
 
-        final tasksNotifier = context.read<TasksNotifier>();
-        final fileService = context.read<FileService>();
-        final dir = Directory(directoryPath);
+      final tasksNotifier = context.read<TasksNotifier>();
+      final fileService = context.read<FileService>();
 
-        // 显示加载提示
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) =>
-              const Center(child: CircularProgressIndicator()),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      List<CompressionTask> tasks;
+      try {
+        tasks = await TaskImportHelper.buildTasksFromPaths(
+          [directoryPath],
+          fileService,
         );
-
-        final tasks = <CompressionTask>[];
-
-        // 在后台进行文件遍历，避免阻塞 UI
-        try {
-          await for (final entity
-              in dir.list(recursive: false, followLinks: false)) {
-            if (entity is File) {
-              if (fileService.isSupportedImage(entity.path)) {
-                final fileSize = await entity.length();
-                tasks.add(CompressionTask(
-                  id: const Uuid().v4(),
-                  filePath: entity.path,
-                  fileName: p.basename(entity.path),
-                  originalSize: fileSize,
-                  status: CompressionStatus.pending,
-                  createdAt: DateTime.now(),
-                ));
-              }
-            }
-          }
-        } finally {
-          if (context.mounted) {
-            // 关闭加载提示
-            Navigator.of(context).pop();
-          }
-        }
-
+      } finally {
         if (context.mounted) {
-          if (tasks.isNotEmpty) {
-            tasksNotifier.addTasks(tasks);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('已添加 ${tasks.length} 个文件')),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('该文件夹没有支持的图片文件')),
-            );
-          }
+          Navigator.of(context).pop();
         }
+      }
+
+      if (!context.mounted) return;
+
+      if (tasks.isNotEmpty) {
+        tasksNotifier.addTasks(tasks);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已添加 ${tasks.length} 个文件')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('该文件夹没有支持的图片文件')),
+        );
       }
     } catch (e) {
       LoggerService.e('选择文件夹失败', e);
       if (context.mounted) {
-        // 确保关闭任何可能打开的 dialog
         Navigator.of(context).popUntil((route) => route.isFirst);
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('选择文件夹失败: $e')),
         );
