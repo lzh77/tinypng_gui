@@ -68,6 +68,19 @@ void main() {
 
       expect(shallow, hasLength(1));
       expect(deep, hasLength(2));
+      expect(deep.every((task) => task.baseDir == tempDir.path), isTrue);
+    });
+
+    test('单文件导入不应设置 baseDir', () async {
+      final image = File('${tempDir.path}/solo.png');
+      await image.writeAsBytes(List.filled(10, 0));
+
+      final tasks = await TaskImportHelper.buildTasksFromPaths(
+        [image.path],
+        fileService,
+      );
+
+      expect(tasks.single.baseDir, isNull);
     });
   });
 }

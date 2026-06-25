@@ -65,6 +65,7 @@ void main() {
     );
     when(mockFileService.getOutputPath(any,
             outputDir: anyNamed('outputDir'),
+            baseDir: anyNamed('baseDir'),
             overwrite: anyNamed('overwrite'),
             suffix: anyNamed('suffix')))
         .thenReturn('${Directory.systemTemp.path}/out.png');

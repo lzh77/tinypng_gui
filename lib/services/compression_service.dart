@@ -81,6 +81,7 @@ class CompressionService {
     final outputPath = _fileService.getOutputPath(
       task.filePath,
       outputDir: settings.outputDirectory,
+      baseDir: task.baseDir,
       overwrite: settings.overwriteOriginal,
       suffix: settings.fileNameSuffix,
     );

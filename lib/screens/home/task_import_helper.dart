@@ -52,6 +52,7 @@ class TaskImportHelper {
             fileService,
             tasks,
             seenPaths,
+            baseDir: path,
           );
         }
       }
@@ -67,8 +68,9 @@ class TaskImportHelper {
     String path,
     FileService fileService,
     List<CompressionTask> tasks,
-    Set<String> seenPaths,
-  ) async {
+    Set<String> seenPaths, {
+    String? baseDir,
+  }) async {
     if (!fileService.isSupportedImage(path) || seenPaths.contains(path)) {
       return;
     }
@@ -84,6 +86,7 @@ class TaskImportHelper {
         originalSize: fileSize,
         status: CompressionStatus.pending,
         createdAt: DateTime.now(),
+        baseDir: baseDir,
       ),
     );
   }

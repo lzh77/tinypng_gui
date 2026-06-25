@@ -133,16 +133,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final paths = details.files
         .map((file) => file.path)
-        .where((path) => path != null && path.isNotEmpty)
-        .cast<String>()
+        .where((path) => path.isNotEmpty)
         .toList();
 
     if (paths.isEmpty || !mounted) return;
 
-    try {
-      final fileService = context.read<FileService>();
-      final tasksNotifier = context.read<TasksNotifier>();
+    final fileService = context.read<FileService>();
+    final tasksNotifier = context.read<TasksNotifier>();
+    final messenger = ScaffoldMessenger.of(context);
 
+    try {
       final tasks = await TaskImportHelper.buildTasksFromPaths(
         paths,
         fileService,
@@ -152,20 +152,20 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       if (tasks.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('未找到支持的图片文件')),
         );
         return;
       }
 
       tasksNotifier.addTasks(tasks);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('已添加 ${tasks.length} 个文件')),
       );
     } catch (e, stackTrace) {
       LoggerService.e('拖拽导入失败', e, stackTrace);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('拖拽导入失败: $e')),
         );
       }

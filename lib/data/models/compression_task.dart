@@ -23,6 +23,7 @@ class CompressionTask extends Equatable {
   final double? compressionRatio; // 压缩比率（压缩后大小/原始大小），仅在完成后存在
   final DateTime createdAt;     // 任务创建时间
   final DateTime? completedAt;  // 任务完成时间，仅在完成后存在
+  final String? baseDir;        // 批量导入时的根目录，用于保持输出目录结构
 
   const CompressionTask({
     required this.id,
@@ -35,6 +36,7 @@ class CompressionTask extends Equatable {
     this.compressionRatio,
     required this.createdAt,
     this.completedAt,
+    this.baseDir,
   });
 
   /// 创建一个新的CompressionTask实例，其属性值来自当前实例，
@@ -50,6 +52,7 @@ class CompressionTask extends Equatable {
     double? compressionRatio,
     DateTime? createdAt,
     DateTime? completedAt,
+    String? baseDir,
   }) {
     return CompressionTask(
       id: id ?? this.id,
@@ -62,6 +65,7 @@ class CompressionTask extends Equatable {
       compressionRatio: compressionRatio ?? this.compressionRatio,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
+      baseDir: baseDir ?? this.baseDir,
     );
   }
 
@@ -78,6 +82,7 @@ class CompressionTask extends Equatable {
       'compressionRatio': compressionRatio,
       'createdAt': createdAt.toIso8601String(),
       'completedAt': completedAt?.toIso8601String(),
+      'baseDir': baseDir,
     };
   }
 
@@ -94,6 +99,7 @@ class CompressionTask extends Equatable {
       compressionRatio: (json['compressionRatio'] as num?)?.toDouble(),
       createdAt: DateTime.parse(json['createdAt'] as String),
       completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt'] as String) : null,
+      baseDir: json['baseDir'] as String?,
     );
   }
 
@@ -127,5 +133,6 @@ class CompressionTask extends Equatable {
     compressionRatio,
     createdAt,
     completedAt,
+    baseDir,
   ];
 }
