@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/api_key_notifier.dart';
 import '../../providers/settings_notifier.dart';
 import 'widgets/api_key_section.dart';
 import 'widgets/appearance_section.dart';
@@ -143,7 +144,10 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      await context.read<SettingsNotifier>().resetToDefault();
+      final apiKeyNotifier = context.read<ApiKeyNotifier>();
+      final settingsNotifier = context.read<SettingsNotifier>();
+      await apiKeyNotifier.clearAllKeys();
+      await settingsNotifier.resetToDefault();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('设置已恢复为默认值')),

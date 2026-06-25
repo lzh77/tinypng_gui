@@ -60,7 +60,8 @@ class AppSettings extends Equatable {
   /// 将对象转换为JSON格式的映射
   Map<String, dynamic> toJson() {
     return {
-      'apiKeys': apiKeys.map((key) => key.toJson()).toList(),
+      // API Key 密文由 SecureApiKeyStorage 管理，不在 SharedPreferences 中持久化
+      'apiKeys': const <Map<String, dynamic>>[],
       'defaultApiKeyId': defaultApiKeyId,
       'autoRotateKeys': autoRotateKeys,
       'outputDirectory': outputDirectory,

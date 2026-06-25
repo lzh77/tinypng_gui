@@ -83,6 +83,16 @@ class ApiKeyService {
     for (int i = 0; i < _apiKeys.length; i++) {
       _apiKeys[i] = _apiKeys[i].copyWith(isDefault: _apiKeys[i].id == keyId);
     }
+
+    final index = _apiKeys.indexWhere((k) => k.id == keyId);
+    if (index != -1) {
+      _currentKeyIndex = index;
+      final selectedKey = _apiKeys[index];
+      if (selectedKey.status == ApiKeyStatus.active) {
+        _api.setApiKey(selectedKey.key);
+      }
+    }
+
     await _storage.saveApiKeys(_apiKeys);
   }
 
@@ -113,12 +123,25 @@ class ApiKeyService {
     _apiKeys.removeWhere((k) => k.id == keyId);
     await _storage.saveApiKeys(_apiKeys);
 
-    // 重置索引
     if (_apiKeys.isEmpty) {
       _currentKeyIndex = -1;
-    } else {
-      _currentKeyIndex = 0;
+      return;
     }
+
+    final defaultIndex = _apiKeys.indexWhere((k) => k.isDefault);
+    _currentKeyIndex = defaultIndex != -1 ? defaultIndex : 0;
+
+    final currentKey = getAvailableKey();
+    if (currentKey != null) {
+      _api.setApiKey(currentKey.key);
+    }
+  }
+
+  /// 清空所有 API Key
+  Future<void> clearAllKeys() async {
+    _apiKeys = [];
+    _currentKeyIndex = -1;
+    await _storage.saveApiKeys(_apiKeys);
   }
 
   /// 更新 API Key 信息

@@ -28,90 +28,118 @@ class CompressionService {
         _fileService = fileService;
 
   /// 压缩单个任务
-  /// 会自动处理 API Key 轮换和文件保存
+  /// 会自动处理 API Key 轮换、失败重试和文件保存
   Future<CompressionTask> compressTask(CompressionTask task) async {
     LoggerService.i('开始处理任务: ${task.fileName} (ID: ${task.id})');
 
-    // 确保 ApiKeyService 已初始化
     await _apiKeyService.initialize();
-
-    // 获取当前设置
     final settings = await _settingsDataSource.getSettings();
+    final int maxAttempts = settings.retryCount + 1;
 
-    try {
-      // 执行压缩（带 Key 轮换逻辑）
-      final resultData = await _compressWithKeyRotation(task, settings);
+    Object? lastError;
+    StackTrace? lastStackTrace;
 
-      // 更新配额统计
-      if (resultData.monthlyCompressionCount != null) {
-        final currentKey = _apiKeyService.getAvailableKey();
-        if (currentKey != null) {
-          await _apiKeyService.updateKeyUsage(
-              currentKey.key, resultData.monthlyCompressionCount!);
-        }
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await _executeCompression(task, settings);
+      } catch (e, stackTrace) {
+        lastError = e;
+        lastStackTrace = stackTrace;
+
+        final bool canRetry = attempt < maxAttempts && _isRetryable(e);
+        if (!canRetry) break;
+
+        LoggerService.w(
+          '压缩任务失败，准备重试 ($attempt/${settings.retryCount}): ${task.fileName}',
+        );
       }
-
-      // 确定并生成输出路径
-      final outputPath = _fileService.getOutputPath(
-        task.filePath,
-        outputDir: settings.outputDirectory,
-        overwrite: settings.overwriteOriginal,
-        suffix: settings.fileNameSuffix,
-      );
-
-      // 保存文件
-      await _fileService.ensureDirectoryExists(outputPath);
-      final outputFile = File(outputPath);
-      await outputFile.writeAsBytes(resultData.data);
-
-      LoggerService.i('任务完成: ${task.fileName} -> $outputPath');
-
-      return task.copyWith(
-        status: CompressionStatus.completed,
-        compressedSize: resultData.compressedSize,
-        compressionRatio: resultData.compressedSize / resultData.originalSize,
-        completedAt: DateTime.now(),
-      );
-    } catch (e, stackTrace) {
-      LoggerService.e('压缩任务失败: ${task.fileName}', e, stackTrace);
-      return task.copyWith(
-        status: CompressionStatus.failed,
-        errorMessage: e.toString(),
-      );
     }
+
+    LoggerService.e('压缩任务失败: ${task.fileName}', lastError, lastStackTrace);
+    return task.copyWith(
+      status: CompressionStatus.failed,
+      errorMessage: lastError.toString(),
+    );
+  }
+
+  Future<CompressionTask> _executeCompression(
+    CompressionTask task,
+    AppSettings settings,
+  ) async {
+    final resultData = await _compressWithKeyRotation(task, settings);
+
+    if (resultData.monthlyCompressionCount != null) {
+      final currentKey = _apiKeyService.getAvailableKey();
+      if (currentKey != null) {
+        await _apiKeyService.updateKeyUsage(
+          currentKey.key,
+          resultData.monthlyCompressionCount!,
+        );
+      }
+    }
+
+    final outputPath = _fileService.getOutputPath(
+      task.filePath,
+      outputDir: settings.outputDirectory,
+      overwrite: settings.overwriteOriginal,
+      suffix: settings.fileNameSuffix,
+    );
+
+    await _fileService.ensureDirectoryExists(outputPath);
+    final outputFile = File(outputPath);
+    await outputFile.writeAsBytes(resultData.data);
+
+    LoggerService.i('任务完成: ${task.fileName} -> $outputPath');
+
+    return task.copyWith(
+      status: CompressionStatus.completed,
+      compressedSize: resultData.compressedSize,
+      compressionRatio: resultData.compressedSize / resultData.originalSize,
+      completedAt: DateTime.now(),
+    );
   }
 
   /// 带 Key 轮换逻辑的压缩实现
   Future<dynamic> _compressWithKeyRotation(
-      CompressionTask task, AppSettings settings) async {
+    CompressionTask task,
+    AppSettings settings,
+  ) async {
     final file = File(task.filePath);
 
-    try {
-      // 确保至少有一个 Key 设置到了 API
-      if (_apiKeyService.getAvailableKey() == null) {
-        throw Exception('没有可用的 API Key');
-      }
+    if (_apiKeyService.getAvailableKey() == null) {
+      throw Exception('没有可用的 API Key');
+    }
 
+    try {
       return await _api.compressImage(file);
     } on QuotaExceededException {
-      // 如果配额用完且开启了自动轮换
       if (settings.autoRotateKeys) {
         LoggerService.w('当前 API Key 配额已满，尝试轮换 Key...');
 
-        // 标记当前 Key 为配额已满
         final currentKey = _apiKeyService.getAvailableKey();
         if (currentKey != null) {
-          await _apiKeyService.updateApiKey(currentKey.id,
-              status: ApiKeyStatus.quotaFull);
+          await _apiKeyService.updateApiKey(
+            currentKey.id,
+            status: ApiKeyStatus.quotaFull,
+          );
         }
 
         final nextKey = _apiKeyService.rotateToNextKey();
         if (nextKey != null) {
-          // 重新尝试压缩
           return await _api.compressImage(file);
         }
       }
       rethrow;
     }
+  }
+
+  /// 判断错误是否适合自动重试
+  bool _isRetryable(Object error) {
+    if (error is NetworkException) return true;
+    if (error is ApiRequestException) {
+      final statusCode = error.statusCode;
+      return statusCode == null || statusCode >= 500;
+    }
+    return false;
   }
 }

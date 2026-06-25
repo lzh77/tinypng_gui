@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'data/datasources/local/history_database.dart';
 import 'data/datasources/local/secure_api_key_storage.dart';
 import 'data/datasources/local/settings_local_data_source.dart';
 import 'data/datasources/remote/tinypng_api.dart';
@@ -12,6 +13,7 @@ import 'screens/home/home_screen.dart';
 import 'services/api_key_service.dart';
 import 'services/compression_service.dart';
 import 'services/file_service.dart';
+import 'services/history_service.dart';
 import 'services/queue_service.dart';
 
 void main() async {
@@ -67,6 +69,9 @@ class TinyPngApp extends StatelessWidget {
         Provider(
           create: (_) => TinyPngApi(),
         ),
+        Provider(
+          create: (_) => HistoryDatabase(),
+        ),
 
         // ========== 服务层 ============
         Provider(
@@ -102,6 +107,11 @@ class TinyPngApp extends StatelessWidget {
               ),
         ),
 
+        ProxyProvider<HistoryDatabase, HistoryService>(
+          update: (context, database, previous) =>
+              previous ?? HistoryService(database: database),
+        ),
+
         // ========== 状态管理层 ============
 
         // 1. 设置状态管理
@@ -113,22 +123,55 @@ class TinyPngApp extends StatelessWidget {
               previous ?? SettingsNotifier(dataSource: dataSource),
         ),
 
-        // 2. 任务状态管理
-        ChangeNotifierProxyProvider<QueueService, TasksNotifier>(
-          create: (context) => TasksNotifier(
-            queueService: context.read<QueueService>(),
+        // 2. 历史记录状态管理
+        ChangeNotifierProxyProvider<HistoryService, HistoryNotifier>(
+          create: (context) => HistoryNotifier(
+            historyService: context.read<HistoryService>(),
           ),
-          update: (context, queueService, previous) =>
-              previous ?? TasksNotifier(queueService: queueService),
+          update: (context, historyService, previous) =>
+              previous ?? HistoryNotifier(historyService: historyService),
         ),
 
-        // 3. 队列状态管理
-        ChangeNotifierProxyProvider<QueueService, QueueStatusNotifier>(
+        // 3. 任务状态管理（完成后写入历史）
+        ChangeNotifierProxyProvider2<QueueService, HistoryNotifier,
+            TasksNotifier>(
+          create: (context) => TasksNotifier(
+            queueService: context.read<QueueService>(),
+            historyNotifier: context.read<HistoryNotifier>(),
+          ),
+          update: (context, queueService, historyNotifier, previous) {
+            final notifier = previous ??
+                TasksNotifier(
+                  queueService: queueService,
+                  historyNotifier: historyNotifier,
+                );
+            notifier.bindHistoryNotifier(historyNotifier);
+            return notifier;
+          },
+        ),
+
+        // 4. 队列状态管理
+        ChangeNotifierProxyProvider2<QueueService, SettingsLocalDataSource,
+            QueueStatusNotifier>(
           create: (context) => QueueStatusNotifier(
             queueService: context.read<QueueService>(),
+            settingsDataSource: context.read<SettingsLocalDataSource>(),
           ),
-          update: (context, queueService, previous) =>
-              previous ?? QueueStatusNotifier(queueService: queueService),
+          update: (context, queueService, settingsDataSource, previous) =>
+              previous ??
+              QueueStatusNotifier(
+                queueService: queueService,
+                settingsDataSource: settingsDataSource,
+              ),
+        ),
+
+        // 5. API Key 状态管理（与安全存储 / 压缩流程共用 ApiKeyService）
+        ChangeNotifierProxyProvider<ApiKeyService, ApiKeyNotifier>(
+          create: (context) => ApiKeyNotifier(
+            apiKeyService: context.read<ApiKeyService>(),
+          ),
+          update: (context, apiKeyService, previous) =>
+              previous ?? ApiKeyNotifier(apiKeyService: apiKeyService),
         ),
       ],
       child: const MainApp(),
@@ -136,8 +179,52 @@ class TinyPngApp extends StatelessWidget {
   }
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
+  }
+
+  /// 启动时加载设置，并将旧版 SharedPreferences 中的 API Key 迁移到安全存储
+  Future<void> _bootstrap() async {
+    if (!mounted) return;
+
+    final settingsNotifier = context.read<SettingsNotifier>();
+    final apiKeyNotifier = context.read<ApiKeyNotifier>();
+    final historyNotifier = context.read<HistoryNotifier>();
+    final queueService = context.read<QueueService>();
+
+    await settingsNotifier.loadSettings();
+
+    final legacyKeys = settingsNotifier.settings.apiKeys
+        .where((key) => key.key.isNotEmpty)
+        .toList();
+
+    await apiKeyNotifier.initialize(legacyKeys: legacyKeys);
+    await historyNotifier.initialize();
+
+    if (!mounted) return;
+
+    if (legacyKeys.isNotEmpty) {
+      await settingsNotifier.updateSettings(
+        settingsNotifier.settings.copyWith(
+          apiKeys: const [],
+          defaultApiKeyId: null,
+        ),
+      );
+    }
+
+    if (!mounted) return;
+    queueService.concurrentLimit = settingsNotifier.settings.concurrentLimit;
+  }
 
   @override
   Widget build(BuildContext context) {

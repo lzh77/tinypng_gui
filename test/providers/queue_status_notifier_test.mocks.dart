@@ -3,12 +3,15 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i3;
+import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:tinypng_gui/data/models/compression_task.dart' as _i5;
-import 'package:tinypng_gui/services/queue_event.dart' as _i4;
-import 'package:tinypng_gui/services/queue_service.dart' as _i2;
+import 'package:tinypng_gui/data/datasources/local/settings_local_data_source.dart'
+    as _i7;
+import 'package:tinypng_gui/data/models/app_settings.dart' as _i2;
+import 'package:tinypng_gui/data/models/compression_task.dart' as _i6;
+import 'package:tinypng_gui/services/queue_event.dart' as _i5;
+import 'package:tinypng_gui/services/queue_service.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -25,19 +28,29 @@ import 'package:tinypng_gui/services/queue_service.dart' as _i2;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
+class _FakeAppSettings_0 extends _i1.SmartFake implements _i2.AppSettings {
+  _FakeAppSettings_0(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
 /// A class which mocks [QueueService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockQueueService extends _i1.Mock implements _i2.QueueService {
+class MockQueueService extends _i1.Mock implements _i3.QueueService {
   MockQueueService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.Stream<_i4.QueueEvent> get events => (super.noSuchMethod(
+  _i4.Stream<_i5.QueueEvent> get events => (super.noSuchMethod(
         Invocation.getter(#events),
-        returnValue: _i3.Stream<_i4.QueueEvent>.empty(),
-      ) as _i3.Stream<_i4.QueueEvent>);
+        returnValue: _i4.Stream<_i5.QueueEvent>.empty(),
+      ) as _i4.Stream<_i5.QueueEvent>);
 
   @override
   int get pendingCount => (super.noSuchMethod(
@@ -52,10 +65,10 @@ class MockQueueService extends _i1.Mock implements _i2.QueueService {
       ) as int);
 
   @override
-  _i4.QueueStatus get status => (super.noSuchMethod(
+  _i5.QueueStatus get status => (super.noSuchMethod(
         Invocation.getter(#status),
-        returnValue: _i4.QueueStatus.idle,
-      ) as _i4.QueueStatus);
+        returnValue: _i5.QueueStatus.idle,
+      ) as _i5.QueueStatus);
 
   @override
   set concurrentLimit(int? limit) => super.noSuchMethod(
@@ -67,7 +80,7 @@ class MockQueueService extends _i1.Mock implements _i2.QueueService {
       );
 
   @override
-  void addTask(_i5.CompressionTask? task) => super.noSuchMethod(
+  void addTask(_i6.CompressionTask? task) => super.noSuchMethod(
         Invocation.method(
           #addTask,
           [task],
@@ -76,7 +89,7 @@ class MockQueueService extends _i1.Mock implements _i2.QueueService {
       );
 
   @override
-  void addTasks(List<_i5.CompressionTask>? tasks) => super.noSuchMethod(
+  void addTasks(List<_i6.CompressionTask>? tasks) => super.noSuchMethod(
         Invocation.method(
           #addTasks,
           [tasks],
@@ -112,14 +125,14 @@ class MockQueueService extends _i1.Mock implements _i2.QueueService {
       );
 
   @override
-  _i3.Future<void> stop() => (super.noSuchMethod(
+  _i4.Future<void> stop() => (super.noSuchMethod(
         Invocation.method(
           #stop,
           [],
         ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
   void removeTask(String? taskId) => super.noSuchMethod(
@@ -147,4 +160,50 @@ class MockQueueService extends _i1.Mock implements _i2.QueueService {
         ),
         returnValueForMissingStub: null,
       );
+}
+
+/// A class which mocks [SettingsLocalDataSource].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockSettingsLocalDataSource extends _i1.Mock
+    implements _i7.SettingsLocalDataSource {
+  MockSettingsLocalDataSource() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<_i2.AppSettings> getSettings() => (super.noSuchMethod(
+        Invocation.method(
+          #getSettings,
+          [],
+        ),
+        returnValue: _i4.Future<_i2.AppSettings>.value(_FakeAppSettings_0(
+          this,
+          Invocation.method(
+            #getSettings,
+            [],
+          ),
+        )),
+      ) as _i4.Future<_i2.AppSettings>);
+
+  @override
+  _i4.Future<void> saveSettings(_i2.AppSettings? settings) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #saveSettings,
+          [settings],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> clearSettings() => (super.noSuchMethod(
+        Invocation.method(
+          #clearSettings,
+          [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }

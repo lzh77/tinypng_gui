@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../data/models/compression_task.dart';
+import '../data/datasources/local/settings_local_data_source.dart';
 import '../services/queue_service.dart';
 import '../services/queue_event.dart';
 
@@ -8,6 +9,7 @@ import '../services/queue_event.dart';
 /// 使用 ChangeNotifier 管理队列的整体状态，并监听队列事件以同步状态变化
 class QueueStatusNotifier extends ChangeNotifier {
   final QueueService _queueService;
+  final SettingsLocalDataSource _settingsDataSource;
 
   QueueStatus _status = QueueStatus.idle;
   CompressionTask? _currentTask;
@@ -16,8 +18,11 @@ class QueueStatusNotifier extends ChangeNotifier {
   String? _message;
   StreamSubscription<QueueEvent>? _queueSubscription;
 
-  QueueStatusNotifier({required QueueService queueService})
-      : _queueService = queueService {
+  QueueStatusNotifier({
+    required QueueService queueService,
+    required SettingsLocalDataSource settingsDataSource,
+  })  : _queueService = queueService,
+        _settingsDataSource = settingsDataSource {
     // 订阅队列事件，自动同步队列状态
     _queueSubscription = _queueService.events.listen(_handleQueueEvent);
   }
@@ -77,8 +82,11 @@ class QueueStatusNotifier extends ChangeNotifier {
   bool get canStop => isRunning || isPaused;
 
   /// 开始处理队列
-  void start() {
+  Future<void> start() async {
     if (!canStart) return;
+
+    final settings = await _settingsDataSource.getSettings();
+    _queueService.concurrentLimit = settings.concurrentLimit;
     _queueService.start();
   }
 

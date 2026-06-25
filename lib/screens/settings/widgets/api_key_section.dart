@@ -1,23 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../data/models/api_key_info.dart';
-import '../../../providers/settings_notifier.dart';
+import '../../../providers/api_key_notifier.dart';
 import 'add_api_key_dialog.dart';
 
 /// API Key 管理区块
-/// 提供 API Key 的列表展示、添加、删除和设为默认操作
+/// 通过 [ApiKeyNotifier] 读写安全存储，与压缩流程共用 [ApiKeyService]
 class ApiKeySection extends StatelessWidget {
   const ApiKeySection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SettingsNotifier>(
+    return Consumer<ApiKeyNotifier>(
       builder: (context, notifier, _) {
-        final List<ApiKeyInfo> apiKeys = notifier.settings.apiKeys;
+        if (!notifier.isInitialized && notifier.isLoading) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        final List<ApiKeyInfo> apiKeys = notifier.apiKeys;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader(context, apiKeys),
+            _buildSectionHeader(context, apiKeys, notifier),
+            if (notifier.error != null) ...[
+              const SizedBox(height: 8),
+              _buildErrorBanner(context, notifier.error!),
+            ],
             const SizedBox(height: 8),
             if (apiKeys.isEmpty)
               _buildEmptyState(context)
@@ -29,7 +42,28 @@ class ApiKeySection extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, List<ApiKeyInfo> apiKeys) {
+  Widget _buildErrorBanner(BuildContext context, String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onErrorContainer,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context,
+    List<ApiKeyInfo> apiKeys,
+    ApiKeyNotifier notifier,
+  ) {
     return Row(
       children: [
         Text(
@@ -42,26 +76,23 @@ class ApiKeySection extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color:
-                Theme.of(context).colorScheme.secondaryContainer,
+            color: Theme.of(context).colorScheme.secondaryContainer,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             '${apiKeys.length} 个',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color:
-                      Theme.of(context).colorScheme.onSecondaryContainer,
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
                 ),
           ),
         ),
         const Spacer(),
         FilledButton.tonalIcon(
-          onPressed: () => _showAddApiKeyDialog(context),
+          onPressed: notifier.isLoading ? null : () => _showAddApiKeyDialog(context),
           icon: const Icon(Icons.add, size: 18),
           label: const Text('添加'),
           style: FilledButton.styleFrom(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
@@ -111,7 +142,7 @@ class ApiKeySection extends StatelessWidget {
   Widget _buildKeyList(
     BuildContext context,
     List<ApiKeyInfo> apiKeys,
-    SettingsNotifier notifier,
+    ApiKeyNotifier notifier,
   ) {
     return ListView.separated(
       shrinkWrap: true,
@@ -122,8 +153,12 @@ class ApiKeySection extends StatelessWidget {
         final ApiKeyInfo apiKey = apiKeys[index];
         return _ApiKeyCard(
           apiKey: apiKey,
-          onSetDefault: () => _setAsDefault(context, notifier, apiKey),
-          onDelete: () => _confirmDelete(context, notifier, apiKey),
+          onSetDefault: notifier.isLoading
+              ? null
+              : () => notifier.setDefaultKey(apiKey.id),
+          onDelete: notifier.isLoading
+              ? null
+              : () => _confirmDelete(context, notifier, apiKey),
         );
       },
     );
@@ -134,38 +169,40 @@ class ApiKeySection extends StatelessWidget {
       context: context,
       builder: (_) => const AddApiKeyDialog(),
     );
-    if (result != null && context.mounted) {
-      final SettingsNotifier notifier = context.read<SettingsNotifier>();
-      final List<ApiKeyInfo> updatedKeys = [
-        ...notifier.settings.apiKeys,
-        result,
-      ];
-      await notifier.updateSettings(
-        notifier.settings.copyWith(apiKeys: updatedKeys),
-      );
-    }
-  }
+    if (result == null || !context.mounted) return;
 
-  Future<void> _setAsDefault(
-    BuildContext context,
-    SettingsNotifier notifier,
-    ApiKeyInfo apiKey,
-  ) async {
-    // 更新所有 Key 的 isDefault 标记
-    final List<ApiKeyInfo> updatedKeys = notifier.settings.apiKeys
-        .map((k) => k.copyWith(isDefault: k.id == apiKey.id))
-        .toList();
-    await notifier.updateSettings(
-      notifier.settings.copyWith(
-        apiKeys: updatedKeys,
-        defaultApiKeyId: apiKey.id,
+    final ApiKeyNotifier notifier = context.read<ApiKeyNotifier>();
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final bool success = await notifier.addApiKey(
+      key: result.key,
+      alias: result.alias,
+    );
+
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'API Key 已添加' : (notifier.error ?? '添加 API Key 失败'),
+        ),
+        backgroundColor: success ? null : Theme.of(context).colorScheme.error,
       ),
     );
   }
 
   Future<void> _confirmDelete(
     BuildContext context,
-    SettingsNotifier notifier,
+    ApiKeyNotifier notifier,
     ApiKeyInfo apiKey,
   ) async {
     final bool? confirmed = await showDialog<bool>(
@@ -189,11 +226,7 @@ class ApiKeySection extends StatelessWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      final List<ApiKeyInfo> updatedKeys =
-          notifier.settings.apiKeys.where((k) => k.id != apiKey.id).toList();
-      await notifier.updateSettings(
-        notifier.settings.copyWith(apiKeys: updatedKeys),
-      );
+      await notifier.removeApiKey(apiKey.id);
     }
   }
 }
@@ -201,8 +234,8 @@ class ApiKeySection extends StatelessWidget {
 /// 单张 API Key 卡片
 class _ApiKeyCard extends StatelessWidget {
   final ApiKeyInfo apiKey;
-  final VoidCallback onSetDefault;
-  final VoidCallback onDelete;
+  final VoidCallback? onSetDefault;
+  final VoidCallback? onDelete;
 
   const _ApiKeyCard({
     required this.apiKey,
@@ -215,7 +248,6 @@ class _ApiKeyCard extends StatelessWidget {
     final bool isDefault = apiKey.isDefault;
     final Color statusColor = _resolveStatusColor(context, apiKey.status);
     final String statusLabel = _resolveStatusLabel(apiKey.status);
-    // 隐藏中间部分的 Key 值
     final String maskedKey = _maskKey(apiKey.key);
 
     return Container(
@@ -233,7 +265,6 @@ class _ApiKeyCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Key 图标和信息
           Icon(
             Icons.key,
             color: isDefault
@@ -250,10 +281,9 @@ class _ApiKeyCard extends StatelessWidget {
                   children: [
                     Text(
                       apiKey.alias,
-                      style:
-                          Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     if (isDefault) ...[
                       const SizedBox(width: 6),
@@ -282,7 +312,6 @@ class _ApiKeyCard extends StatelessWidget {
               ],
             ),
           ),
-          // 操作按钮
           if (!isDefault)
             IconButton(
               icon: const Icon(Icons.star_border, size: 20),

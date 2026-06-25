@@ -3,19 +3,29 @@ import 'package:flutter/foundation.dart';
 import '../data/models/compression_task.dart';
 import '../services/queue_service.dart';
 import '../services/queue_event.dart';
+import 'history_notifier.dart';
 
 /// 任务状态管理器
 /// 使用 ChangeNotifier 管理压缩任务列表，并监听队列事件以同步任务状态
 class TasksNotifier extends ChangeNotifier {
   final QueueService _queueService;
+  HistoryNotifier? _historyNotifier;
 
   final List<CompressionTask> _tasks = [];
   StreamSubscription<QueueEvent>? _queueSubscription;
 
-  TasksNotifier({required QueueService queueService})
-      : _queueService = queueService {
+  TasksNotifier({
+    required QueueService queueService,
+    HistoryNotifier? historyNotifier,
+  })  : _queueService = queueService,
+        _historyNotifier = historyNotifier {
     // 订阅队列事件，自动同步任务状态
     _queueSubscription = _queueService.events.listen(_handleQueueEvent);
+  }
+
+  /// 注入历史记录 Notifier（Provider 树装配完成后调用）
+  void bindHistoryNotifier(HistoryNotifier historyNotifier) {
+    _historyNotifier = historyNotifier;
   }
 
   /// 所有任务列表（不可修改）
@@ -193,6 +203,11 @@ class TasksNotifier extends ChangeNotifier {
       if (index != -1) {
         _tasks[index] = task;
         notifyListeners();
+
+        if (task.status == CompressionStatus.completed ||
+            task.status == CompressionStatus.failed) {
+          _historyNotifier?.onTaskFinished(task);
+        }
       }
     }
   }
