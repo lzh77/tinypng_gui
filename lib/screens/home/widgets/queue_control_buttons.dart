@@ -122,7 +122,7 @@ class QueueControlButtons extends StatelessWidget {
     if (queueStatus.isIdle) {
       // 空闲状态：显示开始按钮
       return FilledButton.icon(
-        onPressed: queueStatus.canStart ? queueStatus.start : null,
+        onPressed: queueStatus.canStart ? () => queueStatus.start() : null,
         icon: const Icon(Icons.play_arrow),
         label: const Text('开始压缩'),
         style: FilledButton.styleFrom(

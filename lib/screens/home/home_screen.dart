@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/tasks_notifier.dart';
+import '../history/history_screen.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/action_toolbar.dart';
 import 'widgets/file_list_item.dart';
@@ -32,9 +33,10 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.history),
             tooltip: '历史记录',
             onPressed: () {
-              // TODO: 导航到历史记录页面
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('历史记录页面开发中...')),
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const HistoryScreen(),
+                ),
               );
             },
           ),

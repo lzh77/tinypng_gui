@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
+import 'package:tinypng_gui/data/datasources/local/settings_local_data_source.dart';
+import 'package:tinypng_gui/data/models/app_settings.dart';
 import 'package:tinypng_gui/data/models/compression_task.dart';
 import 'package:tinypng_gui/providers/queue_status_notifier.dart';
 import 'package:tinypng_gui/services/queue_service.dart';
@@ -9,15 +11,20 @@ import 'dart:async';
 
 import 'queue_status_notifier_test.mocks.dart';
 
-@GenerateMocks([QueueService])
+@GenerateMocks([QueueService, SettingsLocalDataSource])
 void main() {
   late MockQueueService mockQueueService;
+  late MockSettingsLocalDataSource mockSettingsDataSource;
   late StreamController<QueueEvent> queueEventController;
   late QueueStatusNotifier queueStatusNotifier;
 
   setUp(() {
     mockQueueService = MockQueueService();
+    mockSettingsDataSource = MockSettingsLocalDataSource();
     queueEventController = StreamController<QueueEvent>.broadcast();
+
+    when(mockSettingsDataSource.getSettings())
+        .thenAnswer((_) async => AppSettings());
 
     // 配置mock的events流
     when(mockQueueService.events)
@@ -27,7 +34,10 @@ void main() {
     when(mockQueueService.pendingCount).thenReturn(0);
     when(mockQueueService.activeCount).thenReturn(0);
 
-    queueStatusNotifier = QueueStatusNotifier(queueService: mockQueueService);
+    queueStatusNotifier = QueueStatusNotifier(
+      queueService: mockQueueService,
+      settingsDataSource: mockSettingsDataSource,
+    );
   });
 
   tearDown(() {
@@ -63,16 +73,20 @@ void main() {
   });
 
   group('QueueStatusNotifier - 队列控制', () {
-    test('start 应该调用队列服务', () {
-      // 设置队列有待处理任务
+    test('start 应该同步并发限制并调用队列服务', () async {
+      when(mockSettingsDataSource.getSettings()).thenAnswer(
+        (_) async => AppSettings(concurrentLimit: 7),
+      );
       when(mockQueueService.pendingCount).thenReturn(5);
 
-      queueStatusNotifier.start();
+      await queueStatusNotifier.start();
 
+      verify(mockSettingsDataSource.getSettings()).called(1);
+      verify(mockQueueService.concurrentLimit = 7).called(1);
       verify(mockQueueService.start()).called(1);
     });
 
-    test('start 在非空闲状态不应该调用队列服务', () {
+    test('start 在非空闲状态不应该调用队列服务', () async {
       // 模拟运行状态
       queueEventController.add(const QueueEvent(
         status: QueueStatus.running,
@@ -80,7 +94,7 @@ void main() {
         totalCount: 5,
       ));
 
-      queueStatusNotifier.start();
+      await queueStatusNotifier.start();
 
       verifyNever(mockQueueService.start());
     });
@@ -443,7 +457,10 @@ void main() {
 
   group('QueueStatusNotifier - 资源管理', () {
     test('dispose 应该取消事件订阅', () {
-      final testNotifier = QueueStatusNotifier(queueService: mockQueueService);
+      final testNotifier = QueueStatusNotifier(
+        queueService: mockQueueService,
+        settingsDataSource: mockSettingsDataSource,
+      );
 
       // 验证订阅已建立
       expect(

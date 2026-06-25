@@ -85,9 +85,27 @@ Thumbs.db
 secrets.json
 
 # AI 助手与开发工具
+.cursor/
+.cursorrules
 .agent/
+.aider*
+.ai/
+.augment/
+.claude/
+.cline/
+.codex/
+.continue/
+.copilot/
+.factory/
 .gemini/
+.mcp/
+.openhands/
+.roo/
+.tabnine/
+.windsurf/
+AGENTS.local.md
 cortex_metadata.json
+*.prompt.md
 
 # 生成的代码 (mockito mocks 等)
 # 取决于团队偏好，通常建议上传以方便 CI/CD，
