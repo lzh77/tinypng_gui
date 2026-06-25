@@ -199,6 +199,8 @@ class _MainAppState extends State<MainApp> {
 
     final settingsNotifier = context.read<SettingsNotifier>();
     final apiKeyNotifier = context.read<ApiKeyNotifier>();
+    final historyNotifier = context.read<HistoryNotifier>();
+    final queueService = context.read<QueueService>();
 
     await settingsNotifier.loadSettings();
 
@@ -207,7 +209,7 @@ class _MainAppState extends State<MainApp> {
         .toList();
 
     await apiKeyNotifier.initialize(legacyKeys: legacyKeys);
-    await context.read<HistoryNotifier>().initialize();
+    await historyNotifier.initialize();
 
     if (!mounted) return;
 
@@ -221,8 +223,7 @@ class _MainAppState extends State<MainApp> {
     }
 
     if (!mounted) return;
-    context.read<QueueService>().concurrentLimit =
-        settingsNotifier.settings.concurrentLimit;
+    queueService.concurrentLimit = settingsNotifier.settings.concurrentLimit;
   }
 
   @override

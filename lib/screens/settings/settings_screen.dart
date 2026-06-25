@@ -144,8 +144,10 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      await context.read<ApiKeyNotifier>().clearAllKeys();
-      await context.read<SettingsNotifier>().resetToDefault();
+      final apiKeyNotifier = context.read<ApiKeyNotifier>();
+      final settingsNotifier = context.read<SettingsNotifier>();
+      await apiKeyNotifier.clearAllKeys();
+      await settingsNotifier.resetToDefault();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('设置已恢复为默认值')),
