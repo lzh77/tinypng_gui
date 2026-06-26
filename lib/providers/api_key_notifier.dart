@@ -1,20 +1,31 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../data/models/api_key_info.dart';
+import '../data/models/compression_task.dart';
 import '../services/api_key_service.dart';
 import '../services/logger_service.dart';
+import '../services/queue_event.dart';
+import '../services/queue_service.dart';
 
 /// API Key 状态管理器
 /// 通过 [ApiKeyService] 读写安全存储，供设置页 UI 与压缩流程共用同一数据源
 class ApiKeyNotifier extends ChangeNotifier {
   final ApiKeyService _apiKeyService;
+  final QueueService _queueService;
 
   List<ApiKeyInfo> _apiKeys = [];
   bool _isLoading = false;
   bool _initialized = false;
   String? _error;
+  StreamSubscription<QueueEvent>? _queueSubscription;
 
-  ApiKeyNotifier({required ApiKeyService apiKeyService})
-      : _apiKeyService = apiKeyService;
+  ApiKeyNotifier({
+    required ApiKeyService apiKeyService,
+    required QueueService queueService,
+  })  : _apiKeyService = apiKeyService,
+        _queueService = queueService {
+    _queueSubscription = _queueService.events.listen(_handleQueueEvent);
+  }
 
   List<ApiKeyInfo> get apiKeys => List.unmodifiable(_apiKeys);
 
@@ -127,10 +138,20 @@ class ApiKeyNotifier extends ChangeNotifier {
     }
   }
 
-  /// 压缩任务完成后同步用量（供后续配额展示）
+  /// 压缩任务完成后同步用量（供配额展示实时刷新）
   void refreshFromService() {
     _refreshKeys();
     notifyListeners();
+  }
+
+  void _handleQueueEvent(QueueEvent event) {
+    final task = event.currentTask;
+    if (task == null) return;
+
+    if (task.status == CompressionStatus.completed ||
+        task.status == CompressionStatus.failed) {
+      refreshFromService();
+    }
   }
 
   Future<void> _ensureInitialized() async {
@@ -172,5 +193,11 @@ class ApiKeyNotifier extends ChangeNotifier {
     }
 
     _refreshKeys();
+  }
+
+  @override
+  void dispose() {
+    _queueSubscription?.cancel();
+    super.dispose();
   }
 }

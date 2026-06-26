@@ -7,7 +7,10 @@ import 'dart:async' as _i3;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:tinypng_gui/data/models/api_key_info.dart' as _i4;
+import 'package:tinypng_gui/data/models/compression_task.dart' as _i7;
 import 'package:tinypng_gui/services/api_key_service.dart' as _i2;
+import 'package:tinypng_gui/services/queue_event.dart' as _i6;
+import 'package:tinypng_gui/services/queue_service.dart' as _i5;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -154,4 +157,128 @@ class MockApiKeyService extends _i1.Mock implements _i2.ApiKeyService {
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
       ) as _i3.Future<void>);
+}
+
+/// A class which mocks [QueueService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockQueueService extends _i1.Mock implements _i5.QueueService {
+  MockQueueService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i3.Stream<_i6.QueueEvent> get events => (super.noSuchMethod(
+        Invocation.getter(#events),
+        returnValue: _i3.Stream<_i6.QueueEvent>.empty(),
+      ) as _i3.Stream<_i6.QueueEvent>);
+
+  @override
+  int get pendingCount => (super.noSuchMethod(
+        Invocation.getter(#pendingCount),
+        returnValue: 0,
+      ) as int);
+
+  @override
+  int get activeCount => (super.noSuchMethod(
+        Invocation.getter(#activeCount),
+        returnValue: 0,
+      ) as int);
+
+  @override
+  _i6.QueueStatus get status => (super.noSuchMethod(
+        Invocation.getter(#status),
+        returnValue: _i6.QueueStatus.idle,
+      ) as _i6.QueueStatus);
+
+  @override
+  set concurrentLimit(int? limit) => super.noSuchMethod(
+        Invocation.setter(
+          #concurrentLimit,
+          limit,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void addTask(_i7.CompressionTask? task) => super.noSuchMethod(
+        Invocation.method(
+          #addTask,
+          [task],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void addTasks(List<_i7.CompressionTask>? tasks) => super.noSuchMethod(
+        Invocation.method(
+          #addTasks,
+          [tasks],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void start() => super.noSuchMethod(
+        Invocation.method(
+          #start,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void pause() => super.noSuchMethod(
+        Invocation.method(
+          #pause,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void resume() => super.noSuchMethod(
+        Invocation.method(
+          #resume,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i3.Future<void> stop() => (super.noSuchMethod(
+        Invocation.method(
+          #stop,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  void removeTask(String? taskId) => super.noSuchMethod(
+        Invocation.method(
+          #removeTask,
+          [taskId],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void clear() => super.noSuchMethod(
+        Invocation.method(
+          #clear,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void dispose() => super.noSuchMethod(
+        Invocation.method(
+          #dispose,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
 }

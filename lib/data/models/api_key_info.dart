@@ -10,6 +10,9 @@ enum ApiKeyStatus {
   disabled     // 已禁用 - API Key被用户手动禁用
 }
 
+/// TinyPNG 免费账户默认月度压缩配额
+const int kTinyPngFreeMonthlyLimit = 500;
+
 /// API Key信息模型
 /// 用于存储和管理TinyPNG API Key的相关信息
 class ApiKeyInfo extends Equatable {
@@ -108,6 +111,21 @@ class ApiKeyInfo extends Equatable {
       default:
         return ApiKeyStatus.invalid;
     }
+  }
+
+  /// 配额用量文案（设置页与主页展示）
+  String get quotaUsageLabel {
+    if (monthlyLimit != null) {
+      return '本月配额 $compressionCount / $monthlyLimit';
+    }
+    return '本月已压缩 $compressionCount 张';
+  }
+
+  /// 配额使用比例（0.0–1.0），无已知限额时返回 null
+  double? get quotaUsageRatio {
+    final limit = monthlyLimit;
+    if (limit == null || limit <= 0) return null;
+    return (compressionCount / limit).clamp(0.0, 1.0);
   }
 
   @override

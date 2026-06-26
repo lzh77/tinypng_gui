@@ -107,6 +107,7 @@ class ApiKeyService {
       key: key,
       alias: alias,
       isDefault: _apiKeys.isEmpty,
+      monthlyLimit: kTinyPngFreeMonthlyLimit,
     );
 
     _apiKeys.add(newKey);
@@ -177,9 +178,14 @@ class ApiKeyService {
   Future<void> updateKeyUsage(String key, int compressionCount) async {
     final index = _apiKeys.indexWhere((k) => k.key == key);
     if (index != -1) {
+      final limit = _apiKeys[index].monthlyLimit;
+      final reachedLimit =
+          limit != null && compressionCount >= limit;
+
       _apiKeys[index] = _apiKeys[index].copyWith(
         compressionCount: compressionCount,
         lastUsedAt: DateTime.now(),
+        status: reachedLimit ? ApiKeyStatus.quotaFull : _apiKeys[index].status,
       );
       await _storage.saveApiKeys(_apiKeys);
     }

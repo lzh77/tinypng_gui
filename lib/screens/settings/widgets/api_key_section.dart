@@ -302,13 +302,29 @@ class _ApiKeyCard extends StatelessWidget {
                         fontFamily: 'monospace',
                       ),
                 ),
-                if (apiKey.compressionCount > 0)
-                  Text(
-                    '本月已压缩 ${apiKey.compressionCount} 张',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
+                const SizedBox(height: 4),
+                Text(
+                  apiKey.quotaUsageLabel,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                ),
+                if (apiKey.quotaUsageRatio != null) ...[
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: apiKey.quotaUsageRatio,
+                      minHeight: 4,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest,
+                      color: apiKey.status == ApiKeyStatus.quotaFull
+                          ? Colors.orange
+                          : Theme.of(context).colorScheme.primary,
+                    ),
                   ),
+                ],
               ],
             ),
           ),

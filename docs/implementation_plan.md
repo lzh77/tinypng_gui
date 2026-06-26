@@ -52,7 +52,7 @@
 - [x] 创建Provider状态管理配置（[main.dart](file:///c:/code/tinypng_gui/lib/main.dart) 中 `MultiProvider` + `ProxyProvider` 依赖链）
 - [x] 实现主界面框架([HomeScreen](file:///c:/code/tinypng_gui/lib/screens/home/home_screen.dart))
 - [x] 实现API Key管理界面（[ApiKeySection](file:///c:/code/tinypng_gui/lib/screens/settings/widgets/api_key_section.dart)；经 [ApiKeyNotifier](file:///c:/code/tinypng_gui/lib/providers/api_key_notifier.dart) 与安全存储打通，添加时调用 `validateKey`）
-- [x] 实现文件选择功能（单个/多个文件）（[ActionToolbar](file:///c:/code/tinypng_gui/lib/screens/home/widgets/action_toolbar.dart)；缺 `avif` 扩展名、文件夹仅扫描顶层、未传 `baseDir`）
+- [x] 实现文件选择功能（单个/多个文件）（[ActionToolbar](file:///c:/code/tinypng_gui/lib/screens/home/widgets/action_toolbar.dart) + [TaskImportHelper](file:///c:/code/tinypng_gui/lib/screens/home/task_import_helper.dart)；已含 `avif`；按钮选文件夹仅扫描顶层、拖拽文件夹递归）
 - [x] 实现文件列表显示（[FileListItem](file:///c:/code/tinypng_gui/lib/screens/home/widgets/file_list_item.dart)；`HomeScreen` 内联 `ListView.builder`，无独立 FileListView 组件）
 - [x] 实现压缩功能按钮和进度显示（[QueueControlButtons](file:///c:/code/tinypng_gui/lib/screens/home/widgets/queue_control_buttons.dart)）
 - [x] 实现统计面板（[StatisticsPanel](file:///c:/code/tinypng_gui/lib/screens/home/widgets/statistics_panel.dart)）
@@ -70,7 +70,7 @@
 - [x] 实现并发压缩控制（[QueueService](file:///c:/code/tinypng_gui/lib/services/queue_service.dart) 使用 `pool`；`QueueStatusNotifier.start()` 启动前同步 `concurrentLimit`）
 - [x] 实现失败重试机制（`CompressionService` 按 `retryCount` 重试网络错误与 5xx）
 - [x] 实现自动轮换API Key（`CompressionService._compressWithKeyRotation` + `autoRotateKeys`）
-- [ ] 实现配额管理（服务层有 `updateKeyUsage`；设置页已读安全存储，压缩中用量不会实时刷新）
+- [x] 实现配额管理（`CompressionService` 调用 `updateKeyUsage`；[ApiKeyNotifier](file:///c:/code/tinypng_gui/lib/providers/api_key_notifier.dart) 订阅 `QueueService.events` 实时刷新；[ApiKeySection](file:///c:/code/tinypng_gui/lib/screens/settings/widgets/api_key_section.dart) / [QuotaSummaryBar](file:///c:/code/tinypng_gui/lib/screens/home/widgets/quota_summary_bar.dart) 展示 `X / 500` 与进度条）
 
 #### 2.2.3 完善数据持久化
 - [x] 实现完整的API Key加密存储机制（`SecureApiKeyStorage` + `ApiKeyService` + `ApiKeyNotifier`；`AppSettings.toJson` 不再持久化明文 Key）
@@ -90,7 +90,7 @@
 - [ ] 实现应用打包（MSIX格式；仅架构文档有说明，`pubspec.yaml` 无 `msix` 配置）
 
 #### 2.3.2 测试
-- [ ] 实现所有单元测试（已有：TinyPngApi、SecureApiKeyStorage、SettingsLocalDataSource、QueueService、FileService、ApiKeyService、CompressionService、TasksNotifier、SettingsNotifier、QueueStatusNotifier、ApiKeyNotifier、HistoryRecord 等；缺 HistoryDatabase / HistoryNotifier 专项测试）
+- [ ] 实现所有单元测试（已有：TinyPngApi、SecureApiKeyStorage、SettingsLocalDataSource、QueueService、FileService、ApiKeyService、CompressionService、TasksNotifier、SettingsNotifier、QueueStatusNotifier、ApiKeyNotifier、HistoryRecord、TaskImportHelper 等；缺 HistoryDatabase / HistoryNotifier 专项测试）
 - [ ] 实现所有Widget测试（仅 [widget_test.dart](file:///c:/code/tinypng_gui/test/widget_test.dart) 验证 App 初始化）
 - [ ] 实现集成测试
 
@@ -134,6 +134,7 @@
    - [x] FileListItem - 文件列表项组件
    - [x] 进度显示 - QueueControlButtons 内 `LinearProgressIndicator`（无独立 ProgressBar 组件）
    - [x] StatisticsPanel - 统计面板组件
+   - [x] QuotaSummaryBar - 主页默认 Key 配额摘要（压缩中实时刷新）
    - [x] HistoryListItem / HistorySummaryPanel - 历史记录列表项与汇总面板
 
 3. **页面** ([screens](file:///c:/code/tinypng_gui/lib/screens))
@@ -158,6 +159,12 @@
 - [x] 配置高DPI感知支持
 - [x] 设置窗口管理选项
 - [x] desktop_drop 拖拽导入（`DropTarget` 包裹主页；`TaskImportHelper` 统一路径解析）
+
+### 4.4 配额管理与实时刷新
+- [x] 压缩响应头 `Compression-Count` 经 `CompressionService` 写入 `ApiKeyService.updateKeyUsage`
+- [x] 新 Key 默认 `monthlyLimit: 500`（`kTinyPngFreeMonthlyLimit`）；达限额自动标记 `quotaFull`
+- [x] `ApiKeyNotifier` 订阅队列事件，任务完成/失败时 `refreshFromService()` 同步 UI
+- [x] 设置页与主页展示配额用量与进度条
 
 ## 5. 测试计划
 
@@ -228,8 +235,8 @@ dev_dependencies:
 
 ## 7. 里程碑
 
-- **第一阶段**: 第1-3周完成（核心功能跑通）— **主体已完成**，遗留：文件导入细节（`avif`、递归、`baseDir`）
-- **第二阶段**: 第4-5周完成（完整功能）— **进行中**，历史记录 ✅、拖拽 ✅；配额实时刷新等待完成
+- **第一阶段**: 第1-3周完成（核心功能跑通）— **已完成**；按钮选文件夹仍为仅顶层扫描（拖拽为递归，属产品设计）
+- **第二阶段**: 第4-5周完成（完整功能）— **主体已完成**，历史记录 ✅、拖拽 ✅、配额实时刷新 ✅；遗留：集中 `ErrorHandler`、`language` 国际化 UI
 - **第三阶段**: 第6周完成（平台配置和测试）— Windows 运行时配置基本完成；MSIX 打包与 Widget/集成测试待完善
 
 ## 8. 已知集成缺口（2026-06 核对）
@@ -241,3 +248,4 @@ dev_dependencies:
 3. ~~**`concurrentLimit` / `retryCount`**~~：已接入队列与压缩服务（2026-06-25）
 4. ~~**历史记录**~~：已实现 `HistoryDatabase` / `HistoryService` / `HistoryScreen`，压缩完成或失败时自动写入（2026-06-25）
 5. ~~**拖拽导入**~~：已实现 `desktop_drop` + `TaskImportHelper`（2026-06-25）
+6. ~~**配额实时刷新**~~：`ApiKeyNotifier` 订阅 `QueueService.events`；主页 `QuotaSummaryBar` + 设置页配额进度条（2026-06-25）
