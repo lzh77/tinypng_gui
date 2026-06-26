@@ -88,6 +88,7 @@ secrets.json
 .cursor/
 .cursorrules
 .agent/
+.agents/
 .aider*
 .ai/
 .augment/
