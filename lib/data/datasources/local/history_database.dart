@@ -6,16 +6,21 @@ import '../../models/history_record.dart';
 /// 压缩历史 SQLite 数据源（Windows 使用 sqflite_common_ffi）
 class HistoryDatabase {
   static const String _tableName = 'compression_history';
+  static const String defaultDatabaseFileName = 'tinypng_history.db';
   static const int _defaultMaxRecords = 1000;
 
+  final String _databaseFileName;
   Database? _db;
+
+  HistoryDatabase({String databaseFileName = defaultDatabaseFileName})
+      : _databaseFileName = databaseFileName;
 
   /// 初始化数据库连接并创建表
   Future<void> init() async {
     if (_db != null) return;
 
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'tinypng_history.db');
+    final path = join(dbPath, _databaseFileName);
 
     _db = await openDatabase(
       path,
