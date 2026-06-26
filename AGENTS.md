@@ -111,6 +111,8 @@ flutter analyze
 flutter test
 ```
 
+**CI quality gate:** `flutter analyze` must report **no issues** (zero warnings and zero errors). The Windows CI workflow treats any analyze exit code as a failure; fix warnings such as `unnecessary_null_comparison` and `use_build_context_synchronously` before pushing.
+
 For documentation-only changes, a quick repository check such as `git diff --check` is usually sufficient.
 
 ## Known documentation/code drift

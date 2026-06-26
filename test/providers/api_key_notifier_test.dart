@@ -1,22 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:tinypng_gui/data/models/api_key_info.dart';
+import 'package:tinypng_gui/data/models/compression_task.dart';
 import 'package:tinypng_gui/providers/api_key_notifier.dart';
 import 'package:tinypng_gui/services/api_key_service.dart';
+import 'package:tinypng_gui/services/queue_event.dart';
+import 'package:tinypng_gui/services/queue_service.dart';
 
 import 'api_key_notifier_test.mocks.dart';
 
-@GenerateMocks([ApiKeyService])
+@GenerateMocks([ApiKeyService, QueueService])
 void main() {
   late MockApiKeyService mockApiKeyService;
+  late MockQueueService mockQueueService;
+  late StreamController<QueueEvent> queueEvents;
   late ApiKeyNotifier notifier;
   late List<ApiKeyInfo> serviceKeys;
 
   setUp(() {
     mockApiKeyService = MockApiKeyService();
+    mockQueueService = MockQueueService();
+    queueEvents = StreamController<QueueEvent>.broadcast();
     serviceKeys = [];
 
+    when(mockQueueService.events).thenAnswer((_) => queueEvents.stream);
     when(mockApiKeyService.initialize()).thenAnswer((_) async {});
     when(mockApiKeyService.getAllKeys()).thenAnswer((_) => List.unmodifiable(serviceKeys));
     when(mockApiKeyService.addApiKey(any, any)).thenAnswer((invocation) async {
@@ -43,11 +53,15 @@ void main() {
       serviceKeys.clear();
     });
 
-    notifier = ApiKeyNotifier(apiKeyService: mockApiKeyService);
+    notifier = ApiKeyNotifier(
+      apiKeyService: mockApiKeyService,
+      queueService: mockQueueService,
+    );
   });
 
   tearDown(() {
     notifier.dispose();
+    queueEvents.close();
   });
 
   group('ApiKeyNotifier', () {
@@ -115,6 +129,40 @@ void main() {
 
       expect(notifier.apiKeys, isEmpty);
       verify(mockApiKeyService.clearAllKeys()).called(1);
+    });
+
+    test('队列任务完成时应从服务刷新配额', () async {
+      serviceKeys.add(
+        ApiKeyInfo(
+          key: 'k1',
+          alias: 'A',
+          compressionCount: 12,
+          monthlyLimit: kTinyPngFreeMonthlyLimit,
+          isDefault: true,
+        ),
+      );
+      await notifier.initialize();
+
+      serviceKeys[0] = serviceKeys[0].copyWith(compressionCount: 13);
+      when(mockApiKeyService.getAllKeys())
+          .thenAnswer((_) => List.unmodifiable(serviceKeys));
+
+      queueEvents.add(
+        QueueEvent(
+          status: QueueStatus.running,
+          currentTask: CompressionTask(
+            id: 'task-1',
+            filePath: r'C:\a.png',
+            fileName: 'a.png',
+            originalSize: 100,
+            status: CompressionStatus.completed,
+            createdAt: DateTime.now(),
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifier.apiKeys.first.compressionCount, 13);
     });
   });
 }

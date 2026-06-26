@@ -10,6 +10,7 @@ import '../settings/settings_screen.dart';
 import 'task_import_helper.dart';
 import 'widgets/action_toolbar.dart';
 import 'widgets/file_list_item.dart';
+import 'widgets/quota_summary_bar.dart';
 import 'widgets/statistics_panel.dart';
 import 'widgets/queue_control_buttons.dart';
 
@@ -66,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Column(
               children: [
                 const ActionToolbar(),
+                const QuotaSummaryBar(),
                 const StatisticsPanel(),
                 Expanded(child: _buildTaskList()),
                 const QueueControlButtons(),

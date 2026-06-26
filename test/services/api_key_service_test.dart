@@ -50,6 +50,7 @@ void main() {
 
       expect(apiKeyService.getAllKeys(), hasLength(1));
       expect(apiKeyService.getAllKeys().first.isDefault, isTrue);
+      expect(apiKeyService.getAllKeys().first.monthlyLimit, kTinyPngFreeMonthlyLimit);
       expect(storedKeys, hasLength(1));
       verify(mockApi.setApiKey('new-key')).called(1);
     });
@@ -113,6 +114,24 @@ void main() {
 
       expect(result, isTrue);
       verify(mockApi.validateApiKey('test')).called(1);
+    });
+
+    test('updateKeyUsage 达到月度限额时应标记配额已满', () async {
+      storedKeys.add(
+        ApiKeyInfo(
+          id: 'id-1',
+          key: 'k1',
+          alias: 'A',
+          monthlyLimit: kTinyPngFreeMonthlyLimit,
+        ),
+      );
+      await apiKeyService.initialize();
+
+      await apiKeyService.updateKeyUsage('k1', kTinyPngFreeMonthlyLimit);
+
+      final updated = apiKeyService.getAllKeys().first;
+      expect(updated.compressionCount, kTinyPngFreeMonthlyLimit);
+      expect(updated.status, ApiKeyStatus.quotaFull);
     });
   });
 }

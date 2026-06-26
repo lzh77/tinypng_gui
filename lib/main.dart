@@ -166,12 +166,17 @@ class TinyPngApp extends StatelessWidget {
         ),
 
         // 5. API Key 状态管理（与安全存储 / 压缩流程共用 ApiKeyService）
-        ChangeNotifierProxyProvider<ApiKeyService, ApiKeyNotifier>(
+        ChangeNotifierProxyProvider2<ApiKeyService, QueueService, ApiKeyNotifier>(
           create: (context) => ApiKeyNotifier(
             apiKeyService: context.read<ApiKeyService>(),
+            queueService: context.read<QueueService>(),
           ),
-          update: (context, apiKeyService, previous) =>
-              previous ?? ApiKeyNotifier(apiKeyService: apiKeyService),
+          update: (context, apiKeyService, queueService, previous) =>
+              previous ??
+              ApiKeyNotifier(
+                apiKeyService: apiKeyService,
+                queueService: queueService,
+              ),
         ),
       ],
       child: const MainApp(),
